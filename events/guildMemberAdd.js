@@ -7,10 +7,14 @@ const invites = new Map();
 // Store member join data (timestamps and roles) for when they leave
 const memberJoinData = new Map();
 
+// Flag to prevent invite cache updates during member join processing
+const processingJoins = new Set();
+
 module.exports = {
 	name: Events.GuildMemberAdd,
 	invites, // Export invites Map for ready.js to initialize
 	memberJoinData, // Export for guildMemberRemove to access
+	processingJoins, // Export to prevent concurrent updates
 	async execute(member) {
 		const loggingChannel = member.guild.channels.cache.get(loggingChannelId);
 
@@ -19,6 +23,9 @@ module.exports = {
 			return;
 		}
 
+		// Mark this guild as processing a join
+		processingJoins.add(member.guild.id);
+
 		// Store member join data IMMEDIATELY for when they leave
 		const joinDataKey = `${member.guild.id}-${member.user.id}`;
 		memberJoinData.set(joinDataKey, {
@@ -26,9 +33,6 @@ module.exports = {
 			roles: member.roles.cache.map(role => role.name).filter(name => name !== '@everyone'),
 		});
 		console.log(`[LOGGING] Stored join data for ${member.user.tag}`);
-
-		// Small delay to allow invite events to settle
-		await new Promise(resolve => setTimeout(resolve, 500));
 
 		// Find who invited the member by comparing invite uses
 		let inviter = null;
@@ -64,9 +68,13 @@ module.exports = {
 			
 			// Update the invite cache
 			invites.set(member.guild.id, new Map(newInvites.map(inv => [inv.code, inv])));
+			
+			// Clear processing flag
+			processingJoins.delete(member.guild.id);
 		}
 		catch (error) {
 			console.error('[LOGGING] Error fetching invites:', error);
+			processingJoins.delete(member.guild.id);
 		}
 
 		const inviteInfo = inviter ? `${inviter.tag}${inviteCode ? ` (${inviteCode})` : ''}` : 'Unknown / Vanity URL';
