@@ -4,6 +4,8 @@ const { loggingChannelId } = require('../config.json');
 module.exports = {
 	name: Events.GuildMemberRemove,
 	async execute(member) {
+		console.log('[LOGGING] GuildMemberRemove event triggered for:', member.user?.tag || member.id);
+		
 		const loggingChannel = member.guild?.channels.cache.get(loggingChannelId);
 
 		if (!loggingChannel) {
