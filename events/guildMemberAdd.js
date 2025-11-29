@@ -41,9 +41,17 @@ module.exports = {
 			const newInvites = await member.guild.invites.fetch();
 			const oldInvites = invites.get(member.guild.id);
 			
-		console.log(`[LOGGING] Checking invites - Old cache has ${oldInvites?.size || 0} invites, New fetch has ${newInvites.size} invites`);
-		
-		if (oldInvites) {
+			console.log(`[LOGGING] Checking invites - Old cache has ${oldInvites?.size || 0} invites, New fetch has ${newInvites.size} invites`);
+			
+			// Debug: Log all invites in both caches
+			if (oldInvites) {
+				console.log('[LOGGING] Old cache invites:');
+				oldInvites.forEach(inv => console.log(`  - ${inv.code}: ${inv.uses} uses, inviter: ${inv.inviter?.tag || 'Unknown'}`));
+			}
+			console.log('[LOGGING] New fetch invites:');
+			newInvites.forEach(inv => console.log(`  - ${inv.code}: ${inv.uses} uses, inviter: ${inv.inviter?.tag || 'Unknown'}`));
+			
+			if (oldInvites) {
 			// First, check for invites with increased use count
 			let usedInvite = newInvites.find(inv => {
 				const oldInv = oldInvites.get(inv.code);
