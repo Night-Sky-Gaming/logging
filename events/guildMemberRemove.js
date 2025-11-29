@@ -13,12 +13,25 @@ module.exports = {
 			return;
 		}
 
+		// Get stored member join data
+		const guildMemberAddModule = require('./guildMemberAdd.js');
+		const memberJoinData = guildMemberAddModule.memberJoinData;
+		const joinDataKey = `${member.guild.id}-${member.user.id}`;
+		const storedData = memberJoinData.get(joinDataKey);
+
 		// Handle partial members (members not cached)
 		const userTag = member.user?.tag || 'Unknown User';
 		const userId = member.user?.id || member.id || 'Unknown';
 		const avatarURL = member.user?.displayAvatarURL() || null;
-		const joinedTime = member.joinedAt ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>` : 'Unknown';
-		const rolesList = member.roles?.cache ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') || 'None' : 'Unknown';
+		
+		// Use stored join data if available, otherwise try member object
+		const joinedTime = storedData?.joinedAt 
+			? `<t:${Math.floor(storedData.joinedAt.getTime() / 1000)}:R>` 
+			: (member.joinedAt ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>` : 'Unknown');
+		
+		const rolesList = storedData?.roles?.length 
+			? storedData.roles.join(', ') 
+			: (member.roles?.cache ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') || 'None' : 'Unknown');
 
 		const embed = new EmbedBuilder()
 			.setTitle('📤 Member Left')
@@ -39,7 +52,13 @@ module.exports = {
 
 		try {
 			await loggingChannel.send({ embeds: [embed] });
-			console.log(`[LOGGING] Member left: ${member.user.tag}`);
+			console.log(`[LOGGING] Member left: ${userTag}`);
+			
+			// Clean up stored data
+			if (storedData) {
+				memberJoinData.delete(joinDataKey);
+				console.log(`[LOGGING] Cleaned up join data for ${userTag}`);
+			}
 		}
 		catch (error) {
 			console.error('[LOGGING] Error sending member leave log:', error);

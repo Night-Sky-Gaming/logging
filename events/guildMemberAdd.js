@@ -4,9 +4,13 @@ const { loggingChannelId } = require('../config.json');
 // Store invites to track who used which invite
 const invites = new Map();
 
+// Store member join data (timestamps and roles) for when they leave
+const memberJoinData = new Map();
+
 module.exports = {
 	name: Events.GuildMemberAdd,
 	invites, // Export invites Map for ready.js to initialize
+	memberJoinData, // Export for guildMemberRemove to access
 	async execute(member) {
 		const loggingChannel = member.guild.channels.cache.get(loggingChannelId);
 
@@ -22,16 +26,29 @@ module.exports = {
 			const newInvites = await member.guild.invites.fetch();
 			const oldInvites = invites.get(member.guild.id);
 			
+			console.log(`[LOGGING] Checking invites - Old cache has ${oldInvites?.size || 0} invites, New fetch has ${newInvites.size} invites`);
+			
 			if (oldInvites) {
 				const usedInvite = newInvites.find(inv => {
 					const oldInv = oldInvites.get(inv.code);
-					return oldInv && inv.uses > oldInv.uses;
+					if (oldInv && inv.uses > oldInv.uses) {
+						console.log(`[LOGGING] Found used invite: ${inv.code} (${oldInv.uses} -> ${inv.uses})`);
+						return true;
+					}
+					return false;
 				});
 				
 				if (usedInvite) {
 					inviter = usedInvite.inviter;
 					inviteCode = usedInvite.code;
+					console.log(`[LOGGING] Inviter: ${inviter?.tag}, Code: ${inviteCode}`);
 				}
+				else {
+					console.log(`[LOGGING] No matching invite found with increased uses`);
+				}
+			}
+			else {
+				console.log(`[LOGGING] No old invite cache found for guild ${member.guild.name}`);
 			}
 			
 			// Update the invite cache
@@ -40,6 +57,13 @@ module.exports = {
 		catch (error) {
 			console.error('[LOGGING] Error fetching invites:', error);
 		}
+
+		// Store member join data for when they leave
+		const joinDataKey = `${member.guild.id}-${member.user.id}`;
+		memberJoinData.set(joinDataKey, {
+			joinedAt: member.joinedAt,
+			roles: member.roles.cache.map(role => role.name).filter(name => name !== '@everyone'),
+		});
 
 		const inviteInfo = inviter ? `${inviter.tag}${inviteCode ? ` (${inviteCode})` : ''}` : 'Unknown / Vanity URL';
 		
