@@ -78,4 +78,3 @@ logging/
 ```
 
 ⚠️ **Never commit your bot token to version control!** The `.gitignore` file is configured to exclude `config.json`.
-Logging bot for Andromeda Gaming
