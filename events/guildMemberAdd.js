@@ -41,32 +41,44 @@ module.exports = {
 			const newInvites = await member.guild.invites.fetch();
 			const oldInvites = invites.get(member.guild.id);
 			
-			console.log(`[LOGGING] Checking invites - Old cache has ${oldInvites?.size || 0} invites, New fetch has ${newInvites.size} invites`);
+		console.log(`[LOGGING] Checking invites - Old cache has ${oldInvites?.size || 0} invites, New fetch has ${newInvites.size} invites`);
+		
+		if (oldInvites) {
+			// First, check for invites with increased use count
+			let usedInvite = newInvites.find(inv => {
+				const oldInv = oldInvites.get(inv.code);
+				if (oldInv && inv.uses > oldInv.uses) {
+					console.log(`[LOGGING] Found used invite: ${inv.code} (${oldInv.uses} -> ${inv.uses})`);
+					return true;
+				}
+				return false;
+			});
 			
-			if (oldInvites) {
-				const usedInvite = newInvites.find(inv => {
+			// If no increased uses found, check for newly created invites that now have 1 use
+			if (!usedInvite) {
+				usedInvite = newInvites.find(inv => {
 					const oldInv = oldInvites.get(inv.code);
-					if (oldInv && inv.uses > oldInv.uses) {
-						console.log(`[LOGGING] Found used invite: ${inv.code} (${oldInv.uses} -> ${inv.uses})`);
+					// New invite (not in old cache) with 1 use, OR invite in old cache with 0 uses now has 1
+					if ((!oldInv && inv.uses === 1) || (oldInv && oldInv.uses === 0 && inv.uses === 1)) {
+						console.log(`[LOGGING] Found newly created invite that was used: ${inv.code} (uses: ${inv.uses})`);
 						return true;
 					}
 					return false;
 				});
-				
-				if (usedInvite) {
-					inviter = usedInvite.inviter;
-					inviteCode = usedInvite.code;
-					console.log(`[LOGGING] Inviter: ${inviter?.tag}, Code: ${inviteCode}`);
-				}
-				else {
-					console.log(`[LOGGING] No matching invite found with increased uses`);
-				}
-			}
-			else {
-				console.log(`[LOGGING] No old invite cache found for guild ${member.guild.name}`);
 			}
 			
-			// Update the invite cache
+			if (usedInvite) {
+				inviter = usedInvite.inviter;
+				inviteCode = usedInvite.code;
+				console.log(`[LOGGING] Inviter: ${inviter?.tag}, Code: ${inviteCode}`);
+			}
+			else {
+				console.log(`[LOGGING] No matching invite found with increased uses`);
+			}
+		}
+		else {
+			console.log(`[LOGGING] No old invite cache found for guild ${member.guild.name}`);
+		}			// Update the invite cache
 			invites.set(member.guild.id, new Map(newInvites.map(inv => [inv.code, inv])));
 			
 			// Clear processing flag
