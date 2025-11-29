@@ -75,6 +75,17 @@ module.exports = {
 				});
 			}
 			
+			// If still no match, check for invites that existed in old cache but are now missing (deleted after use)
+			if (!usedInvite) {
+				for (const [code, oldInv] of oldInvites.entries()) {
+					if (!newInvites.has(code)) {
+						console.log(`[LOGGING] Found deleted invite that was likely used: ${code} (was in old cache, now deleted)`);
+						usedInvite = oldInv;
+						break;
+					}
+				}
+			}
+			
 			if (usedInvite) {
 				inviter = usedInvite.inviter;
 				inviteCode = usedInvite.code;
