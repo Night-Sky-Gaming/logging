@@ -12,6 +12,7 @@ const client = new Client({
 		GatewayIntentBits.GuildMessages,
 		GatewayIntentBits.MessageContent,
 	],
+	partials: ['GuildMember', 'User'],
 });
 
 // Load commands (if any in the future)

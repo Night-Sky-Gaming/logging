@@ -1,4 +1,4 @@
-const { Events, EmbedBuilder } = require('discord.js');
+const { Events, EmbedBuilder, AuditLogEvent } = require('discord.js');
 const { loggingChannelId } = require('../config.json');
 
 module.exports = {
@@ -11,6 +11,22 @@ module.exports = {
 			return;
 		}
 
+		// Fetch audit logs to find who invited the member
+		let inviter = null;
+		try {
+			const fetchedLogs = await member.guild.fetchAuditLogs({
+				limit: 1,
+				type: AuditLogEvent.BotAdd,
+			});
+			const auditEntry = fetchedLogs.entries.first();
+			if (auditEntry && auditEntry.target.id === member.id) {
+				inviter = auditEntry.executor;
+			}
+		}
+		catch (error) {
+			console.error('[LOGGING] Error fetching audit logs:', error);
+		}
+
 		const embed = new EmbedBuilder()
 			.setTitle('📥 Member Joined')
 			.setColor(0x00ff00)
@@ -19,6 +35,7 @@ module.exports = {
 				{ name: 'User', value: `${member.user.tag}`, inline: true },
 				{ name: 'User ID', value: `${member.user.id}`, inline: true },
 				{ name: 'Account Created', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: false },
+				{ name: 'Invited By', value: inviter ? `${inviter.tag}` : 'Unknown', inline: true },
 				{ name: 'Member Count', value: `${member.guild.memberCount}`, inline: true },
 			)
 			.setFooter({ text: `ID: ${member.user.id}` })
