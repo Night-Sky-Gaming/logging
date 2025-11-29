@@ -19,6 +19,17 @@ module.exports = {
 			return;
 		}
 
+		// Store member join data IMMEDIATELY for when they leave
+		const joinDataKey = `${member.guild.id}-${member.user.id}`;
+		memberJoinData.set(joinDataKey, {
+			joinedAt: member.joinedAt,
+			roles: member.roles.cache.map(role => role.name).filter(name => name !== '@everyone'),
+		});
+		console.log(`[LOGGING] Stored join data for ${member.user.tag}`);
+
+		// Small delay to allow invite events to settle
+		await new Promise(resolve => setTimeout(resolve, 500));
+
 		// Find who invited the member by comparing invite uses
 		let inviter = null;
 		let inviteCode = null;
@@ -57,13 +68,6 @@ module.exports = {
 		catch (error) {
 			console.error('[LOGGING] Error fetching invites:', error);
 		}
-
-		// Store member join data for when they leave
-		const joinDataKey = `${member.guild.id}-${member.user.id}`;
-		memberJoinData.set(joinDataKey, {
-			joinedAt: member.joinedAt,
-			roles: member.roles.cache.map(role => role.name).filter(name => name !== '@everyone'),
-		});
 
 		const inviteInfo = inviter ? `${inviter.tag}${inviteCode ? ` (${inviteCode})` : ''}` : 'Unknown / Vanity URL';
 		

@@ -3,6 +3,9 @@ const { Events } = require('discord.js');
 module.exports = {
 	name: Events.InviteCreate,
 	async execute(invite) {
+		// Delay to allow member join event to process first
+		await new Promise(resolve => setTimeout(resolve, 1000));
+		
 		const guildMemberAddModule = require('./guildMemberAdd.js');
 		const invites = guildMemberAddModule.invites;
 		
