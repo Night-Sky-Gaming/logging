@@ -37,6 +37,8 @@ module.exports = {
 		// Find who invited the member by comparing invite uses
 		let inviter = null;
 		let inviteCode = null;
+		let inviteReason = null; // Track why we couldn't find the inviter
+		
 		try {
 			const newInvites = await member.guild.invites.fetch();
 			const oldInvites = invites.get(member.guild.id);
@@ -52,52 +54,59 @@ module.exports = {
 			newInvites.forEach(inv => console.log(`  - ${inv.code}: ${inv.uses} uses, inviter: ${inv.inviter?.tag || 'Unknown'}`));
 			
 			if (oldInvites) {
-			// First, check for invites with increased use count
-			let usedInvite = newInvites.find(inv => {
-				const oldInv = oldInvites.get(inv.code);
-				if (oldInv && inv.uses > oldInv.uses) {
-					console.log(`[LOGGING] Found used invite: ${inv.code} (${oldInv.uses} -> ${inv.uses})`);
-					return true;
-				}
-				return false;
-			});
-			
-			// If no increased uses found, check for newly created invites that now have 1 use
-			if (!usedInvite) {
-				usedInvite = newInvites.find(inv => {
+				// First, check for invites with increased use count
+				let usedInvite = newInvites.find(inv => {
 					const oldInv = oldInvites.get(inv.code);
-					// New invite (not in old cache) with 1 use, OR invite in old cache with 0 uses now has 1
-					if ((!oldInv && inv.uses === 1) || (oldInv && oldInv.uses === 0 && inv.uses === 1)) {
-						console.log(`[LOGGING] Found newly created invite that was used: ${inv.code} (uses: ${inv.uses})`);
+					if (oldInv && inv.uses > oldInv.uses) {
+						console.log(`[LOGGING] Found used invite: ${inv.code} (${oldInv.uses} -> ${inv.uses})`);
 						return true;
 					}
 					return false;
 				});
-			}
-			
-			// If still no match, check for invites that existed in old cache but are now missing (deleted after use)
-			if (!usedInvite) {
-				for (const [code, oldInv] of oldInvites.entries()) {
-					if (!newInvites.has(code)) {
-						console.log(`[LOGGING] Found deleted invite that was likely used: ${code} (was in old cache, now deleted)`);
-						usedInvite = oldInv;
-						break;
+				
+				// If no increased uses found, check for newly created invites that now have 1 use
+				if (!usedInvite) {
+					usedInvite = newInvites.find(inv => {
+						const oldInv = oldInvites.get(inv.code);
+						// New invite (not in old cache) with 1 use, OR invite in old cache with 0 uses now has 1
+						if ((!oldInv && inv.uses === 1) || (oldInv && oldInv.uses === 0 && inv.uses === 1)) {
+							console.log(`[LOGGING] Found newly created invite that was used: ${inv.code} (uses: ${inv.uses})`);
+							return true;
+						}
+						return false;
+					});
+				}
+				
+				// If still no match, check for invites that existed in old cache but are now missing (deleted after use)
+				if (!usedInvite) {
+					for (const [code, oldInv] of oldInvites.entries()) {
+						if (!newInvites.has(code)) {
+							console.log(`[LOGGING] Found deleted invite that was likely used: ${code} (was in old cache, now deleted)`);
+							usedInvite = oldInv;
+							break;
+						}
 					}
 				}
+				
+				if (usedInvite) {
+					inviter = usedInvite.inviter;
+					inviteCode = usedInvite.code;
+					console.log(`[LOGGING] Inviter: ${inviter?.tag}, Code: ${inviteCode}`);
+				} else {
+					console.log(`[LOGGING] No matching invite found with increased uses`);
+					// Check if server has vanity URL
+					if (member.guild.vanityURLCode) {
+						inviteReason = 'Vanity URL';
+					} else {
+						inviteReason = 'Unknown (likely pre-existing invite)';
+					}
+				}
+			} else {
+				console.log(`[LOGGING] No old invite cache found for guild ${member.guild.name}`);
+				inviteReason = 'Cache not initialized';
 			}
 			
-			if (usedInvite) {
-				inviter = usedInvite.inviter;
-				inviteCode = usedInvite.code;
-				console.log(`[LOGGING] Inviter: ${inviter?.tag}, Code: ${inviteCode}`);
-			}
-			else {
-				console.log(`[LOGGING] No matching invite found with increased uses`);
-			}
-		}
-		else {
-			console.log(`[LOGGING] No old invite cache found for guild ${member.guild.name}`);
-		}			// Update the invite cache
+			// Update the invite cache
 			invites.set(member.guild.id, new Map(newInvites.map(inv => [inv.code, inv])));
 			
 			// Clear processing flag
@@ -106,9 +115,10 @@ module.exports = {
 		catch (error) {
 			console.error('[LOGGING] Error fetching invites:', error);
 			processingJoins.delete(member.guild.id);
+			inviteReason = 'Error fetching invites';
 		}
 
-		const inviteInfo = inviter ? `${inviter.tag}${inviteCode ? ` (${inviteCode})` : ''}` : 'Unknown / Vanity URL';
+		const inviteInfo = inviter ? `${inviter.tag}${inviteCode ? ` (${inviteCode})` : ''}` : inviteReason || 'Unknown';
 		
 		const embed = new EmbedBuilder()
 			.setTitle('📥 Member Joined')
