@@ -24,16 +24,14 @@ module.exports = {
 		const userId = member.user?.id || member.id || 'Unknown';
 		const avatarURL = member.user?.displayAvatarURL() || null;
 		
-		// Use stored join data if available, otherwise try member object
-		const joinedTime = storedData?.joinedAt 
-			? `<t:${Math.floor(storedData.joinedAt.getTime() / 1000)}:R>` 
-			: (member.joinedAt ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>` : 'Unknown');
-		
-		const rolesList = storedData?.roles?.length 
-			? storedData.roles.join(', ') 
-			: (member.roles?.cache ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') || 'None' : 'Unknown');
-
-		const embed = new EmbedBuilder()
+	// Use stored join data if available, otherwise try member object
+	const joinedTime = storedData?.joinedAt 
+		? `<t:${Math.floor(storedData.joinedAt.getTime() / 1000)}:R>` 
+		: (member.joinedAt ? `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>` : 'Before bot was added');
+	
+	const rolesList = storedData?.roles?.length 
+		? storedData.roles.join(', ') 
+		: (member.roles?.cache ? member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.name).join(', ') || 'None' : 'Unknown');		const embed = new EmbedBuilder()
 			.setTitle('📤 Member Left')
 			.setColor(0xff0000)
 			.addFields(
