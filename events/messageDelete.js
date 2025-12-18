@@ -1,5 +1,4 @@
 const { Events, EmbedBuilder } = require('discord.js');
-const { loggingChannelId } = require('../config.json');
 
 module.exports = {
 	name: Events.MessageDelete,
@@ -7,7 +6,7 @@ module.exports = {
 		// Ignore bot messages
 		if (message.author?.bot) return;
 
-		const loggingChannel = message.guild.channels.cache.get(loggingChannelId);
+		const loggingChannel = message.guild.channels.cache.get('1450971383466299454');
 
 		if (!loggingChannel) {
 			console.error('[LOGGING] Logging channel not found!');

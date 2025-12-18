@@ -1,5 +1,4 @@
 const { Events, EmbedBuilder } = require('discord.js');
-const { loggingChannelId } = require('../config.json');
 
 // Store invites to track who used which invite
 const invites = new Map();
@@ -16,7 +15,7 @@ module.exports = {
 	memberJoinData, // Export for guildMemberRemove to access
 	processingJoins, // Export to prevent concurrent updates
 	async execute(member) {
-		const loggingChannel = member.guild.channels.cache.get(loggingChannelId);
+		const loggingChannel = member.guild.channels.cache.get('1450971336200683656');
 
 		if (!loggingChannel) {
 			console.error('[LOGGING] Logging channel not found!');

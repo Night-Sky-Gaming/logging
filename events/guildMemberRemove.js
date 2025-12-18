@@ -1,12 +1,11 @@
 const { Events, EmbedBuilder } = require('discord.js');
-const { loggingChannelId } = require('../config.json');
 
 module.exports = {
 	name: Events.GuildMemberRemove,
 	async execute(member) {
 		console.log('[LOGGING] GuildMemberRemove event triggered for:', member.user?.tag || member.id);
 		
-		const loggingChannel = member.guild?.channels.cache.get(loggingChannelId);
+		const loggingChannel = member.guild?.channels.cache.get('1450971336200683656');
 
 		if (!loggingChannel) {
 			console.error('[LOGGING] Logging channel not found!');

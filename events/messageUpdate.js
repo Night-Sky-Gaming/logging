@@ -1,5 +1,4 @@
 const { Events, EmbedBuilder } = require('discord.js');
-const { loggingChannelId } = require('../config.json');
 
 module.exports = {
 	name: Events.MessageUpdate,
@@ -8,7 +7,7 @@ module.exports = {
 		if (newMessage.author.bot) return;
 		if (oldMessage.content === newMessage.content) return;
 
-		const loggingChannel = newMessage.guild.channels.cache.get(loggingChannelId);
+		const loggingChannel = newMessage.guild.channels.cache.get('1450971383466299454');
 
 		if (!loggingChannel) {
 			console.error('[LOGGING] Logging channel not found!');
