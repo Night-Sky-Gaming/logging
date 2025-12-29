@@ -119,9 +119,14 @@ module.exports = {
 
 		const inviteInfo = inviter ? `${inviter.tag}${inviteCode ? ` (${inviteCode})` : ''}` : inviteReason || 'Unknown';
 		
+		// Check if account is less than 30 days old
+		const accountAge = Date.now() - member.user.createdTimestamp;
+		const thirtyDaysInMs = 30 * 24 * 60 * 60 * 1000;
+		const isSuspicious = accountAge < thirtyDaysInMs;
+		
 		const embed = new EmbedBuilder()
 			.setTitle('📥 Member Joined')
-			.setColor(0x00ff00)
+			.setColor(isSuspicious ? 0xffa500 : 0x00ff00)
 			.setThumbnail(member.user.displayAvatarURL())
 			.addFields(
 				{ name: 'User', value: `${member.user.tag}`, inline: true },
@@ -133,9 +138,17 @@ module.exports = {
 			.setFooter({ text: `ID: ${member.user.id}` })
 			.setTimestamp();
 
+		// Add warning field if account is suspicious
+		if (isSuspicious) {
+			const daysOld = Math.floor(accountAge / (24 * 60 * 60 * 1000));
+			embed.addFields(
+				{ name: '⚠️ Warning', value: `Account is only ${daysOld} day(s) old! Please review before accepting.`, inline: false },
+			);
+		}
+
 		try {
 			await loggingChannel.send({ embeds: [embed] });
-			console.log(`[LOGGING] Member joined: ${member.user.tag}`);
+			console.log(`[LOGGING] Member joined: ${member.user.tag}${isSuspicious ? ' (SUSPICIOUS - Account < 30 days old)' : ''}`);
 		}
 		catch (error) {
 			console.error('[LOGGING] Error sending member join log:', error);
